@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<style>
+.foo {
+  width: 100px;
+  height: 100px;
+  background-color: red;
+  position: absolute;
+  left: 300px;
+}
+</style>
+<script src='../web-animations-js/web-animations.js'></script>
+<script>
+var t = document.timeline
+</script>
+<script type='text/krazy'>
+a = [1, 2, 3]
+b = map (+) a
+
+map f Nil = Nil
+map f (Cons h t) = Cons (f h) (map f t)
+
+id a = a
+
+applyThree q = q 3
+
+record Timing { duration: 0, iterations: 1 }
+data :Animation: = AKS Element StringMap Double | AKT Element StringMap Timing
+data Group = :ParGroup: [Animation] Timing | :SeqGroup: [Animation] Timing
+
+anim = ParGroup [AKS (:document.querySelector: ".foo") {left: "100px"} 1, AKS (:document.querySelector: ".foo") {transform: 'rotate(45deg)'} 1]
+play x = :document.timeline.play: x
+
+main = do
+  :console.log: a b (map applyThree b)
+  :console.log: (map id Nil)
+  :console.log: (map id (Cons 1 Nil))
+  play anim
+
+</script>
+<div class='foo'></div>
+<script src='krazy.js'></script>
