@@ -1,0 +1,144 @@
+
+start
+  = statement_list
+
+statement_list 
+  = '\n'* h:statement S? '\n'+ t:statement_list { return [h].concat(t); }
+  / '\n'* o:statement S? '\n'* { return [o] }
+
+S = [ \t]+
+
+statement
+  = record
+  / data
+  / set
+
+record
+  = 'record' S c:constructor S? '{' S? l:record_list S? '}' { return { type: 'record', name: c, members: l } }
+
+record_list
+  = n:record_item S? ',' S? l:record_list { return [n].concat(l); }
+  / n:record_item { return [n]; }
+
+record_item
+  = n:name S? ':' S? e:expression { return { name: n, expr: e }; }  
+
+data
+  = 'data' S c:data_cons S? '=' S? l:data_term_list { return { type: 'data', name: c, types: l} }
+
+data_term_list
+  = n:data_term S? '|' S? l:data_term_list { return [n].concat(l); }
+  / n:data_term { return [n]; }
+
+data_term
+  = c:data_cons S l:constructor_list { return { cons: c, types: l} }
+  / c:data_cons { return { cons: c, type: []} }
+
+constructor_list
+  = c:type_atom S l:constructor_list { return [c].concat(l); }
+  / c:type_atom { return [c]; }
+
+type_atom
+  = constructor
+  / '[' S? c:constructor S? ']' { return { type: 'List', parameters: [ c ] } }
+
+data_cons
+  = c:constructor { return c; }
+  / ':' c:constructor ':' { return { foreign: c }; }
+
+set 
+  = lhs:value S? bind:pattern_list? S? '=' S? rhs:expression { 
+        if (bind == "") {
+          return { type: 'set', lhs:lhs, rhs:rhs };
+        } else {
+          return { type: 'fun', name:lhs, bind:bind, rhs:rhs };
+        }
+      }
+
+value = name
+
+pattern_list
+  = n:pattern S+ l:pattern_list { return [n].concat(l); }
+  / n:pattern { return [n]; } 
+
+pattern
+  = name
+  / c:constructor { return { fun: {cons: c}, args: []} } 
+  / '(' S? e:expression S? ')' { return e; }
+
+expression
+  = do 
+  / f:expr_unit S r:expr_unit_list { if (f.fun) { f = f.fun; }; return {type: 'evaluate', fun: f, args: r} } 
+  / name
+  / c:constructor { return {type: 'evaluate', fun: {cons: c}, args: []}; }
+  / '[' S? l:expression_list S? ']' { return l }
+  / literal
+
+do
+  = 'do' S? '\n' expr_list:indented_expression+ { return {type: 'do', list: expr_list } }
+
+indented_expression
+  = S e:expression S? '\n' { return e; }
+
+literal 
+  = number
+  / string
+  / object
+
+expression_list 
+  = h:expression S? ',' S? t:expression_list { return [h].concat(t); }
+  / s:expression { return [s]; }
+
+number = a:('-'?[0-9.]+) { return Number(a.join('')); }
+
+string 
+  = '"' a:([^"]*) '"' { return a.join(''); }
+  / "'" a:([^']*) "'" { return a.join(''); }
+
+object = '{' S? l:kv_list S? '}' { return l; }
+
+kv_list
+  = h:kv S? ',' S? t:kv_list { t[h.k] = h.v; return t }
+  / h:kv { var o = {}; o[h.k] = h.v; return o; }
+
+kv
+  = k:kv_name S? ':' S? v: literal { var r = {k: k, v: v}; return r; }
+
+kv_name
+  = local_name
+  / string
+
+expr_unit
+  = name
+  / c:constructor { return {type: 'evaluate', fun: {cons: c}, args: []}; }
+  / operator
+  / '(' S? e:expression S? ')' { return e }
+  / literal
+  / '[' S? e:expr_unit_comma_list S? ']' { return {type: 'list', value: e}; }
+
+expr_unit_comma_list
+  = h:expression S? ',' S? t:expr_unit_comma_list { return [h].concat(t); }
+  / h:expression { return [h]; }
+
+operator
+  = '+'
+  / '(' o:operator ')' { return { type: 'infix', op: o }}
+
+expr_unit_list
+  = h:expr_unit S t:expr_unit_list { return [h].concat(t); }
+  / s:expr_unit { return [s] }
+
+name 
+  = name:local_name { return {local: name} }
+  / name:js_name { return {js: name} }
+
+local_name = name:ident { return name }
+
+js_name = ':' name:js_ident ':' { return name }
+
+ident = fst:[a-z] rst:[a-zA-Z_0-9]* { return fst + rst.join(''); }
+
+js_ident = fst:[a-z] rst:[a-zA-Z_0-9.]* { return fst + rst.join(''); }
+
+constructor = fst:[A-Z] rst:[a-zA-Z_0-9]* { return fst + rst.join(''); }
+
