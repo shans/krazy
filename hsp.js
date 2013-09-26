@@ -56,6 +56,7 @@ module.exports = (function(){
         "do": parse_do,
         "indented_expression": parse_indented_expression,
         "literal": parse_literal,
+        "literal_raw": parse_literal_raw,
         "expression_list": parse_expression_list,
         "number": parse_number,
         "string": parse_string,
@@ -1223,7 +1224,7 @@ module.exports = (function(){
                   pos = pos1;
                 }
                 if (result0 !== null) {
-                  result0 = (function(offset, l) { return l })(pos0, result0[2]);
+                  result0 = (function(offset, l) { return {type: 'list', value: l}; })(pos0, result0[2]);
                 }
                 if (result0 === null) {
                   pos = pos0;
@@ -1354,6 +1355,21 @@ module.exports = (function(){
       }
       
       function parse_literal() {
+        var result0;
+        var pos0;
+        
+        pos0 = pos;
+        result0 = parse_literal_raw();
+        if (result0 !== null) {
+          result0 = (function(offset, x) { return {type: 'literal', value: x}; })(pos0, result0);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_literal_raw() {
         var result0;
         
         result0 = parse_number();
@@ -2147,7 +2163,7 @@ module.exports = (function(){
         pos0 = pos;
         result0 = parse_local_name();
         if (result0 !== null) {
-          result0 = (function(offset, name) { return {local: name} })(pos0, result0);
+          result0 = (function(offset, name) { return {type: 'reference', local: name} })(pos0, result0);
         }
         if (result0 === null) {
           pos = pos0;

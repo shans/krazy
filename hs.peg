@@ -71,7 +71,7 @@ expression
   / f:expr_unit S r:expr_unit_list { if (f.fun) { f = f.fun; }; return {type: 'evaluate', fun: f, args: r} } 
   / name
   / c:constructor { return {type: 'evaluate', fun: {cons: c}, args: []}; }
-  / '[' S? l:expression_list S? ']' { return l }
+  / '[' S? l:expression_list S? ']' { return {type: 'list', value: l}; }
   / literal
 
 do
@@ -80,7 +80,10 @@ do
 indented_expression
   = S e:expression S? '\n' { return e; }
 
-literal 
+literal
+  = x:literal_raw { return {type: 'literal', value: x}; }
+
+literal_raw
   = number
   / string
   / object
@@ -129,7 +132,7 @@ expr_unit_list
   / s:expr_unit { return [s] }
 
 name 
-  = name:local_name { return {local: name} }
+  = name:local_name { return {type: 'reference', local: name} }
   / name:js_name { return {js: name} }
 
 local_name = name:ident { return name }

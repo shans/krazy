@@ -1,4 +1,4 @@
-var TRACE = 'NONE';
+var TRACE = 'CONSOLE';
 
 var path = [];
 var paths = [];
@@ -58,6 +58,7 @@ krazyScripts.forEach(function(script) {
   parsedScript.forEach(function(statement) {
     if (statement.type == 'set') {
       console.assert(statement.lhs.local);
+      console.log(statement.lhs.local, statement.rhs);
       items[statement.lhs.local] = statement.rhs;
     } else if (statement.type == 'fun') {
       var lName = statement.name.local;
@@ -65,8 +66,9 @@ krazyScripts.forEach(function(script) {
       if (items[lName]) {
         items[lName].choices.push({bind: statement.bind, eval: statement.rhs});
       } else {
-        items[lName] = {choices: [{bind: statement.bind, eval: statement.rhs}]};
+        items[lName] = {type: 'function', choices: [{bind: statement.bind, eval: statement.rhs}]};
       }
+      console.log(items[lName]);
     } else if (statement.type == 'data') {
       console.log(JSON.stringify(statement));
       if (statement.name.foreign) {
@@ -115,7 +117,7 @@ function evaluate(expr) {
     var evArgs = expr.args.map(evaluate);
     if (expr.fun.local) {
       trace('local function, applying', evArgs, 'to', expr.fun.local);
-      return apply(items[expr.fun.local], evArgs);
+      return apply(items[expr.fun.local], expr.args);
     } else if (expr.fun.cons) {
       trace('constructor expression')
       console.assert(constructorToNative[expr.fun.cons], expr.fun.cons, constructorToNative);
@@ -125,7 +127,7 @@ function evaluate(expr) {
     }
   } else if (expr.local) {
     trace('local name');
-    return evaluate(items[expr.local]);
+    return items[expr.local];
   } else if (expr.type == 'infix') {
     trace('infix operator');
     return evaluate(items[expr.op]);
@@ -141,10 +143,13 @@ function evaluate(expr) {
           // TODO: proper scoping
           items[expr.bind[i].local] = arguments[i];
         } else if (expr.bind[i].fun) {
+	  console.log(expr.bind[i].fun);
 	  var matchFun = nativeToConstructor[expr.bind[i].fun.cons];
 	  console.assert(matchFun !== undefined, expr.bind[i]);
 	  
-	  var matches = matchFun(arguments[i]);
+	  console.log(arguments[i]);
+	  console.log(reduce(arguments[i]));
+	  var matches = matchFun(reduce(arguments[i]));
 	  if (matches == undefined) { throw 'MatchFail'; }
 	  for (var j = 0; j < matches.length; j++) {
 	    // TODO: proper scoping
@@ -167,13 +172,22 @@ function evaluate(expr) {
     }, evExpr[0].length);
   } else if (expr.type == 'list') {
     return expr.value.map(evaluate);
+  } else if (expr.type == 'literal') {
+    trace('literal value');
+    return expr.value;
   } else {
-    trace('primitive type');
-    return expr;
+    console.assert(false, 'unknown type', expr);
   }
   }();
   pathPop();
   return result;
+}
+
+function reduce(expr) {
+  while (expr.type) {
+    expr = evaluate(expr);
+  }
+  return expr;
 }
 
 function jsLookup(name) {
@@ -186,6 +200,8 @@ function jsLookup(name) {
 }
 
 function apply(fun, args) {
+  fun = reduce(fun);
+  console.log(fun, args);
   if (fun.js) {
     return jsApply(jsLookup(fun.js), args);
   } else if (fun.choices) {
