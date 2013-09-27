@@ -1361,7 +1361,7 @@ module.exports = (function(){
         pos0 = pos;
         result0 = parse_literal_raw();
         if (result0 !== null) {
-          result0 = (function(offset, x) { return {type: 'literal', value: x}; })(pos0, result0);
+          result0 = (function(offset, x) { return {type: 'literal', value: x.value, it: x.it}; })(pos0, result0);
         }
         if (result0 === null) {
           pos = pos0;
@@ -1371,12 +1371,34 @@ module.exports = (function(){
       
       function parse_literal_raw() {
         var result0;
+        var pos0;
         
+        pos0 = pos;
         result0 = parse_number();
+        if (result0 !== null) {
+          result0 = (function(offset, n) { return {it: 'Num', value: n}; })(pos0, result0);
+        }
         if (result0 === null) {
+          pos = pos0;
+        }
+        if (result0 === null) {
+          pos0 = pos;
           result0 = parse_string();
+          if (result0 !== null) {
+            result0 = (function(offset, s) { return {it: 'String', value: s}; })(pos0, result0);
+          }
           if (result0 === null) {
+            pos = pos0;
+          }
+          if (result0 === null) {
+            pos0 = pos;
             result0 = parse_object();
+            if (result0 !== null) {
+              result0 = (function(offset, o) { return {it: 'StringMap', value: o}; })(pos0, result0);
+            }
+            if (result0 === null) {
+              pos = pos0;
+            }
           }
         }
         return result0;

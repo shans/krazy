@@ -1,4 +1,4 @@
-var TRACE = 'CONSOLE';
+var TRACE = 'NONE';
 
 var path = [];
 var paths = [];
@@ -41,6 +41,19 @@ var items = {
   '+': {js: 'add'},
 };
 
+function showItems(name) {
+  if (!logDiv) {
+    return;
+  }
+  var s = '<h3>' + name + '</h3><table><tr><th>name</th><th>value</th></tr>';
+  for (var item in items) {
+    s += '<tr><td>' + item + '</td><td>' + JSON.stringify(items[item]) + '</td></tr>'
+  }
+  s += '<table>';
+  logDiv.innerHTML += s;
+}
+
+
 // FIXME: allow user extension
 var constructorToNative = {
   'Nil': function() { return []; },
@@ -58,7 +71,6 @@ krazyScripts.forEach(function(script) {
   parsedScript.forEach(function(statement) {
     if (statement.type == 'set') {
       console.assert(statement.lhs.local);
-      console.log(statement.lhs.local, statement.rhs);
       items[statement.lhs.local] = statement.rhs;
     } else if (statement.type == 'fun') {
       var lName = statement.name.local;
@@ -68,9 +80,7 @@ krazyScripts.forEach(function(script) {
       } else {
         items[lName] = {type: 'function', choices: [{bind: statement.bind, eval: statement.rhs}]};
       }
-      console.log(items[lName]);
     } else if (statement.type == 'data') {
-      console.log(JSON.stringify(statement));
       if (statement.name.foreign) {
 	var foo = function() {
 	  var fCons = window[statement.name.foreign];
@@ -91,7 +101,6 @@ krazyScripts.forEach(function(script) {
 	    var fCons = window[type.cons.foreign];
 	    if (type.types.length == 2) {
 	      constructorToNative[type.cons.foreign] = function() {
-		console.log(arguments[0]);
 		return new fCons(arguments[0], arguments[1]);
 	      }
 	    }
@@ -103,6 +112,7 @@ krazyScripts.forEach(function(script) {
       console.log(statement);
     }
   });
+  showItems('initial state');
 });
 
 function evaluate(expr) {
@@ -143,12 +153,9 @@ function evaluate(expr) {
           // TODO: proper scoping
           items[expr.bind[i].local] = arguments[i];
         } else if (expr.bind[i].fun) {
-	  console.log(expr.bind[i].fun);
 	  var matchFun = nativeToConstructor[expr.bind[i].fun.cons];
 	  console.assert(matchFun !== undefined, expr.bind[i]);
 	  
-	  console.log(arguments[i]);
-	  console.log(reduce(arguments[i]));
 	  var matches = matchFun(reduce(arguments[i]));
 	  if (matches == undefined) { throw 'MatchFail'; }
 	  for (var j = 0; j < matches.length; j++) {
@@ -200,8 +207,7 @@ function jsLookup(name) {
 }
 
 function apply(fun, args) {
-  fun = reduce(fun);
-  console.log(fun, args);
+  args = args.map(reduce);
   if (fun.js) {
     return jsApply(jsLookup(fun.js), args);
   } else if (fun.choices) {
@@ -232,6 +238,7 @@ function apply(fun, args) {
 }
 
 function jsApply(f, args) {
+  args = args.map(reduce);
   args = args.map(function(a) {
     if (a.base) {
       return a.f.bind(a.base);

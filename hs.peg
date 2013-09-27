@@ -81,12 +81,12 @@ indented_expression
   = S e:expression S? '\n' { return e; }
 
 literal
-  = x:literal_raw { return {type: 'literal', value: x}; }
+  = x:literal_raw { return {type: 'literal', value: x.value, it: x.it}; }
 
 literal_raw
-  = number
-  / string
-  / object
+  = n:number { return {it: 'Num', value: n}; }
+  / s:string { return {it: 'String', value: s}; }
+  / o:object { return {it: 'StringMap', value: o}; }
 
 expression_list 
   = h:expression S? ',' S? t:expression_list { return [h].concat(t); }
