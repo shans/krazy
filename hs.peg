@@ -31,8 +31,8 @@ data_term_list
   / n:data_term { return [n]; }
 
 data_term
-  = c:data_cons S l:constructor_list { return { cons: c, types: l} }
-  / c:data_cons { return { cons: c, type: []} }
+  = c:data_cons S l:constructor_list { return { type: 'reference', cons: c, types: l} }
+  / c:data_cons { return { type: 'reference', cons: c, type: []} }
 
 constructor_list
   = c:type_atom S l:constructor_list { return [c].concat(l); }
@@ -63,14 +63,14 @@ pattern_list
 
 pattern
   = name
-  / c:constructor { return { fun: {cons: c}, args: []} } 
+  / c:constructor { return { type: 'evaluate', fun: {type: 'reference', cons: c}, args: []} } 
   / '(' S? e:expression S? ')' { return e; }
 
 expression
   = do 
   / f:expr_unit S r:expr_unit_list { if (f.fun) { f = f.fun; }; return {type: 'evaluate', fun: f, args: r} } 
   / name
-  / c:constructor { return {type: 'evaluate', fun: {cons: c}, args: []}; }
+  / c:constructor { return {type: 'evaluate', fun: {type: 'reference', cons: c}, args: []}; }
   / '[' S? l:expression_list S? ']' { return {type: 'list', value: l}; }
   / literal
 
@@ -105,7 +105,7 @@ kv_list
   / h:kv { var o = {}; o[h.k] = h.v; return o; }
 
 kv
-  = k:kv_name S? ':' S? v: literal { var r = {k: k, v: v}; return r; }
+  = k:kv_name S? ':' S? v: literal { var r = {k: k, v: v.value}; return r; }
 
 kv_name
   = local_name
@@ -113,7 +113,7 @@ kv_name
 
 expr_unit
   = name
-  / c:constructor { return {type: 'evaluate', fun: {cons: c}, args: []}; }
+  / c:constructor { return {type: 'evaluate', fun: {type: 'reference', cons: c}, args: []}; }
   / operator
   / '(' S? e:expression S? ')' { return e }
   / literal
@@ -133,7 +133,7 @@ expr_unit_list
 
 name 
   = name:local_name { return {type: 'reference', local: name} }
-  / name:js_name { return {js: name} }
+  / name:js_name { return {type: 'reference', js: name} }
 
 local_name = name:ident { return name }
 

@@ -732,7 +732,7 @@ module.exports = (function(){
           pos = pos1;
         }
         if (result0 !== null) {
-          result0 = (function(offset, c, l) { return { cons: c, types: l} })(pos0, result0[0], result0[2]);
+          result0 = (function(offset, c, l) { return { type: 'reference', cons: c, types: l} })(pos0, result0[0], result0[2]);
         }
         if (result0 === null) {
           pos = pos0;
@@ -741,7 +741,7 @@ module.exports = (function(){
           pos0 = pos;
           result0 = parse_data_cons();
           if (result0 !== null) {
-            result0 = (function(offset, c) { return { cons: c, type: []} })(pos0, result0);
+            result0 = (function(offset, c) { return { type: 'reference', cons: c, type: []} })(pos0, result0);
           }
           if (result0 === null) {
             pos = pos0;
@@ -1059,7 +1059,7 @@ module.exports = (function(){
           pos0 = pos;
           result0 = parse_constructor();
           if (result0 !== null) {
-            result0 = (function(offset, c) { return { fun: {cons: c}, args: []} })(pos0, result0);
+            result0 = (function(offset, c) { return { type: 'evaluate', fun: {type: 'reference', cons: c}, args: []} })(pos0, result0);
           }
           if (result0 === null) {
             pos = pos0;
@@ -1166,7 +1166,7 @@ module.exports = (function(){
               pos0 = pos;
               result0 = parse_constructor();
               if (result0 !== null) {
-                result0 = (function(offset, c) { return {type: 'evaluate', fun: {cons: c}, args: []}; })(pos0, result0);
+                result0 = (function(offset, c) { return {type: 'evaluate', fun: {type: 'reference', cons: c}, args: []}; })(pos0, result0);
               }
               if (result0 === null) {
                 pos = pos0;
@@ -1847,7 +1847,7 @@ module.exports = (function(){
           pos = pos1;
         }
         if (result0 !== null) {
-          result0 = (function(offset, k, v) { var r = {k: k, v: v}; return r; })(pos0, result0[0], result0[4]);
+          result0 = (function(offset, k, v) { var r = {k: k, v: v.value}; return r; })(pos0, result0[0], result0[4]);
         }
         if (result0 === null) {
           pos = pos0;
@@ -1874,7 +1874,7 @@ module.exports = (function(){
           pos0 = pos;
           result0 = parse_constructor();
           if (result0 !== null) {
-            result0 = (function(offset, c) { return {type: 'evaluate', fun: {cons: c}, args: []}; })(pos0, result0);
+            result0 = (function(offset, c) { return {type: 'evaluate', fun: {type: 'reference', cons: c}, args: []}; })(pos0, result0);
           }
           if (result0 === null) {
             pos = pos0;
@@ -2194,7 +2194,7 @@ module.exports = (function(){
           pos0 = pos;
           result0 = parse_js_name();
           if (result0 !== null) {
-            result0 = (function(offset, name) { return {js: name} })(pos0, result0);
+            result0 = (function(offset, name) { return {type: 'reference', js: name} })(pos0, result0);
           }
           if (result0 === null) {
             pos = pos0;

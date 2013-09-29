@@ -38,16 +38,106 @@ var krazyScripts = [].filter.call(scripts, function(script) {
 var add = hofFunction(function(a, b) { return a + b; });
 
 var items = {
-  '+': {js: 'add'},
+  '+': {type: 'reference', js: 'add', it: {dom: "Num", rng: "Num"}},
 };
+
+function prettyPrint(item) {
+  if (!item.type) {
+    return JSON.stringify(item);
+  }
+  switch (item.type) {
+  case 'reference': 
+    if (item.js) {
+      return ':' + item.js + ':';
+    } else if (item.cons) {
+      return item.cons;
+    }
+    return item.local;
+  case 'list':
+    return '[' + item.value.map(prettyPrint).join(', ') + ']';
+  case 'literal':
+    if (item.it == 'StringMap') {
+      return JSON.stringify(item.value);
+    }
+    return item.value;
+  case 'evaluate':
+    if (item.args.length == 0) {
+      return prettyPrint(item.fun);
+    }
+    return prettyPrint(item.fun) + ' (' + item.args.map(prettyPrint).join(') (') + ')'
+  case 'infix':
+    return '(' + item.op + ')'
+  case 'function':
+    return item.choices.map(function(choice) {
+      return '(' + choice.bind.map(prettyPrint).join(') (') + ') &rarr; ' + prettyPrint(choice.eval);
+    }).join('<br>');
+  case 'do':
+    return '<ol><li>' + item.list.map(prettyPrint).join('</li><li>') + '</li></ol>'
+  default:
+    return JSON.stringify(item);
+  }
+}
+
+function NameGenerator() {
+  this.count = 0;
+}
+
+NameGenerator.prototype = {
+  name: function() {
+    var newName = 't' + this.count;
+    this.count += 1;
+    return newName;
+  }
+}
+
+function type(item) {
+  if (item.it) {
+    return item.it;
+  }
+  if (item.type == 'reference') {
+    if (item.local) {
+      return item.local;
+    }
+  }
+  if (item.type == 'infix') {
+    return item.op;
+  }
+  return undefined;
+}
+
+function typeTerms(item, name, nameGen) {
+  if (item.it) {
+    return [{name: name, type: item.it}];
+  }
+  if (!item.type) {
+    return [];
+  }
+  switch (item.type) {
+  case 'list':
+    if (item.value.length == 0) {
+      return [{name: name, type: {app: 'List', args: [nameGen.name()]}}];
+    }
+    var it = type(item.value[0]);
+    for (var i = 1; i < item.value.length; i++) {
+      if (it != type(item.value[i])) {
+	return [{name: name, type: {app: 'List', args: [nameGen.name()]}}];
+      }
+      return [{name: name, type: {app: 'List', args: [it]}}];
+    }
+  case 'evaluate':
+    return [{name: name, type: {app: type(item.fun), args: item.args.map(type)}}];
+  default:
+    return item;
+  }
+}
 
 function showItems(name) {
   if (!logDiv) {
     return;
   }
-  var s = '<h3>' + name + '</h3><table><tr><th>name</th><th>value</th></tr>';
+  var s = '<h3>' + name + '</h3><table><tr><th>name</th><th>value</th><th>type terms</th></tr>';
   for (var item in items) {
-    s += '<tr><td>' + item + '</td><td>' + JSON.stringify(items[item]) + '</td></tr>'
+    s += '<tr><td>' + item + '</td><td>' + prettyPrint(items[item]) + '</td><td>' + JSON.stringify(typeTerms(items[item], item, new NameGenerator())) + '</td></tr>'
   }
   s += '<table>';
   logDiv.innerHTML += s;
